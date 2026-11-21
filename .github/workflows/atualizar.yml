@@ -1,0 +1,36 @@
+name: atualizar
+
+# Mantém a receita na versão mais nova do app de desktop: procura a última release desktop-vX.Y.Z do
+# wdonega/prep-wiki-br, lê os sha-256 dos zips do Mac no SHA256SUMS.txt dela e atualiza Casks/prep-wiki-br.rb.
+# Roda a cada 6 horas e à mão (Actions > atualizar > Run workflow).
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Atualizar a receita
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(gh release list --repo wdonega/prep-wiki-br --limit 100 --json tagName,createdAt \
+                --jq '[.[] | select(.tagName | startswith("desktop-v"))] | sort_by(.createdAt) | last | .tagName')
+          if [ -z "$TAG" ] || [ "$TAG" = null ]; then echo "nenhuma release desktop-v ainda"; exit 0; fi
+          V=${TAG#desktop-v}
+          gh release download "$TAG" --repo wdonega/prep-wiki-br --pattern SHA256SUMS.txt --dir /tmp
+          ARM=$(awk '$2 ~ /mac-arm64\.zip$/ { print $1 }' /tmp/SHA256SUMS.txt)
+          X64=$(awk '$2 ~ /mac-x64\.zip$/ { print $1 }' /tmp/SHA256SUMS.txt)
+          if [ -z "$ARM" ] || [ -z "$X64" ]; then echo "a release $TAG não tem os zips do Mac" >&2; exit 1; fi
+          sed -i -E "s/^  version \"[^\"]*\"/  version \"$V\"/; s/(arm: +)\"[0-9a-f]{64}\"/\1\"$ARM\"/; s/(intel: +)\"[0-9a-f]{64}\"/\1\"$X64\"/" Casks/prep-wiki-br.rb
+          if git diff --quiet; then echo "já está em $V"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "prep-wiki-br $V"
+          git push
