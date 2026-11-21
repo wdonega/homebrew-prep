@@ -2,8 +2,8 @@ cask "prep-wiki-br" do
   arch arm: "arm64", intel: "x64"
 
   version "0.1.0"
-  sha256 arm:   "0000000000000000000000000000000000000000000000000000000000000000",
-         intel: "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 arm:   "0d80b4d637a561567a188b414f17274f30a28f4e3fc6dd298418f6a9875dc593",
+         intel: "3296b5b0476c6c8c2557d07c8d5e538e7c9a208eda5bee80dc399973bec2aa19"
 
   url "https://github.com/wdonega/prep-wiki-br/releases/download/desktop-v#{version}/prep-wiki-br-#{version}-mac-#{arch}.zip",
       verified: "github.com/wdonega/prep-wiki-br/"
